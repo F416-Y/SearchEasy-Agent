@@ -16,8 +16,7 @@ SEARCH_URL = "https://whisper1234-ai-shop-agent-api.hf.space/search"
 
 def generate_recommendation(results_list: list) -> str:
     products_text = "\n".join(
-        f"- 商品图: {r['image_path']}, 相似度: {r['score']:.2f}"
-        for r in results_list
+        f"- {r}" for r in results_list[:10]
     )
 
     prompt = (
