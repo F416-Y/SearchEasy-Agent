@@ -71,10 +71,10 @@ async def recommend(file: UploadFile | None = File(None)):
     # 调用大模型生成推荐语
     try:
         recommendation_note = generate_recommendation(results)
-    except Exception:
+    except Exception as e:
         raise HTTPException(
             status_code=500,
-            detail="推荐语生成失败，请稍后重试",
+            detail=f"推荐语生成失败: {e}",
         )
 
     return {
