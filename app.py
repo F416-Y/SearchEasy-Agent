@@ -97,10 +97,12 @@ async def recommend(file: UploadFile | None = File(None)):
     if file is None or file.filename == "":
         raise HTTPException(status_code=400, detail="请上传一张图片文件")
 
+    # 读取上传图片内容（复用，避免二次读取空内容）
+    contents = await file.read()
+
     # 保存上传图片到临时文件，供特征提取使用
     tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".jpg")
     try:
-        contents = await file.read()
         tmp.write(contents)
         tmp.close()
         image_path = tmp.name
@@ -109,34 +111,40 @@ async def recommend(file: UploadFile | None = File(None)):
         os.unlink(tmp.name)
         raise HTTPException(status_code=500, detail="无法保存上传的图片")
 
-    # 转发图片到搜索接口（Mock 模式）
-    # try:
-    #     async with httpx.AsyncClient(timeout=30.0) as client:
-    #         search_resp = await client.post(
-    #             SEARCH_URL,
-    #             files={"file": (file.filename, await file.read(), file.content_type)},
-    #         )
-    #         search_resp.raise_for_status()
-    #         search_data = search_resp.json()
-    # except httpx.HTTPStatusError:
-    #     raise HTTPException(
-    #         status_code=502,
-    #         detail="商品搜索服务暂时不可用，请稍后重试",
-    #     )
-    # except httpx.RequestError:
-    #     raise HTTPException(
-    #         status_code=502,
-    #         detail="无法连接到商品搜索服务，请稍后重试",
-    #     )
-    #
-    # results = search_data.get("results", [])
+    # 转发图片到搜索接口
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            search_resp = await client.post(
+                SEARCH_URL,
+                files={"file": (file.filename, contents, file.content_type)},
+            )
+            search_resp.raise_for_status()
+            search_data = search_resp.json()
+    except httpx.HTTPStatusError:
+        raise HTTPException(
+            status_code=502,
+            detail="商品搜索服务暂时不可用，请稍后重试",
+        )
+    except httpx.RequestError:
+        raise HTTPException(
+            status_code=502,
+            detail="无法连接到商品搜索服务，请稍后重试",
+        )
 
-    mock_results = [
-        {"image_path": "https://via.placeholder.com/300?text=相似商品1", "score": 0.95},
-        {"image_path": "https://via.placeholder.com/300?text=相似商品2", "score": 0.88},
-        {"image_path": "https://via.placeholder.com/300?text=相似商品3", "score": 0.75},
-    ]
-    results = mock_results
+    raw_results = search_data.get("results", [])
+
+    # 兼容不同字段名：image_path / path / filename，统一归一化为 image_path
+    results = []
+    for r in raw_results:
+        img_path = r.get("image_path") or r.get("path") or r.get("filename")
+        results.append({"image_path": img_path, "score": r.get("score", 0)})
+
+    # mock_results = [
+    #     {"image_path": "https://via.placeholder.com/300?text=相似商品1", "score": 0.95},
+    #     {"image_path": "https://via.placeholder.com/300?text=相似商品2", "score": 0.88},
+    #     {"image_path": "https://via.placeholder.com/300?text=相似商品3", "score": 0.75},
+    # ]
+    # results = mock_results
 
     # 调用大模型生成推荐语
     try:
