@@ -4,6 +4,7 @@ from functools import lru_cache
 
 import httpx
 from fastapi import FastAPI, File, HTTPException, UploadFile
+from pydantic import BaseModel
 
 # 阿里百炼 (DashScope) 环境变量配置
 #   LLM_API_KEY    — API Key，从阿里云百炼控制台获取
@@ -162,6 +163,73 @@ async def recommend(file: UploadFile | None = File(None)):
         "products": [
             {"image_path": r["image_path"], "similarity_score": r["score"]}
             for r in results
+        ],
+        "recommendation_note": recommendation_note,
+    }
+
+
+class FeedbackRequest(BaseModel):
+    feedback: str
+    last_products: list
+
+
+@app.post("/api/agent/feedback")
+async def feedback(req: FeedbackRequest):
+    if req.feedback not in ("like", "dislike"):
+        raise HTTPException(status_code=400, detail="feedback 必须为 like 或 dislike")
+
+    if not req.last_products:
+        raise HTTPException(status_code=400, detail="last_products 不能为空")
+
+    products_text = "\n".join(
+        f"- 商品图: {r.get('image_path', r.get('path', ''))}, 相似度: {r.get('score', r.get('similarity_score', 0)):.2f}"
+        for r in req.last_products
+    )
+
+    if req.feedback == "like":
+        prompt = (
+            "你是一个友好的购物助手。用户对你刚才的推荐很满意！\n"
+            f"以下是之前推荐的相似商品列表：\n\n{products_text}\n\n"
+            "请基于这些商品，继续推荐更多风格相似的商品。"
+            "用亲切、口语化的语气，像朋友推荐东西一样自然。说人话，控制在 150 字以内。"
+        )
+    else:
+        prompt = (
+            "你是一个友好的购物助手。用户对你刚才的推荐不太满意，希望换一种风格。\n"
+            f"以下是之前推荐的相似商品列表：\n\n{products_text}\n\n"
+            "请换个完全不同的风格重新推荐，给用户一些新的选择方向。"
+            "用亲切、口语化的语气，像朋友推荐东西一样自然。说人话，控制在 150 字以内。"
+        )
+
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            resp = await client.post(
+                url=f"{os.getenv('LLM_BASE_URL').rstrip('/')}/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {os.getenv('LLM_API_KEY')}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": os.getenv("LLM_MODEL"),
+                    "messages": [{"role": "user", "content": prompt}],
+                },
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            recommendation_note = data["choices"][0]["message"]["content"]
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"推荐语生成失败: {e}",
+        )
+
+    return {
+        "products": [
+            {
+                "image_path": r.get("image_path", r.get("path", "")),
+                "similarity_score": r.get("score", r.get("similarity_score", 0)),
+            }
+            for r in req.last_products
         ],
         "recommendation_note": recommendation_note,
     }
