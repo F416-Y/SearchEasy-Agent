@@ -2,6 +2,8 @@
 
 多模态电商智能导购 Agent —— 上传商品图片，获取 AI 驱动的个性化购物推荐。
 
+> [在线体验](https://huggingface.co/spaces/YunYunWaiFu/Flora-ai-shop-agent)
+
 ## 项目概述
 
 搜-easy 是一套多模态电商导购系统。用户上传一张商品图片，系统完成：
@@ -82,6 +84,8 @@ python visualize_tsne.py features.npz -o tsne_output.png
 | `/api/agent/feedback` | POST | 提交 `like`/`dislike` 反馈，返回调整后的推荐 |
 
 ### Docker 部署 (Hugging Face Spaces)
+
+在线地址：[https://huggingface.co/spaces/YunYunWaiFu/Flora-ai-shop-agent](https://huggingface.co/spaces/YunYunWaiFu/Flora-ai-shop-agent)
 
 ```bash
 docker build -t search-easy-agent .
