@@ -2,7 +2,7 @@
 
 多模态电商智能导购 Agent —— 上传商品图片，获取 AI 驱动的个性化购物推荐。
 
-> [在线体验](https://huggingface.co/spaces/YunYunWaiFu/Flora-ai-shop-agent)
+> [在线体验](https://huggingface.co/spaces/YunYunWaiFu/Flora-ai-shop-agent/docs)
 
 ## 项目概述
 
@@ -85,7 +85,7 @@ python visualize_tsne.py features.npz -o tsne_output.png
 
 ### Docker 部署 (Hugging Face Spaces)
 
-在线地址：[https://huggingface.co/spaces/YunYunWaiFu/Flora-ai-shop-agent](https://huggingface.co/spaces/YunYunWaiFu/Flora-ai-shop-agent)
+在线地址：[https://huggingface.co/spaces/YunYunWaiFu/Flora-ai-shop-agent/docs](https://huggingface.co/spaces/YunYunWaiFu/Flora-ai-shop-agent/docs)
 
 ```bash
 docker build -t search-easy-agent .
