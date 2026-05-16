@@ -14,7 +14,7 @@
 
 ## 图像处理与 Agent 后端（本仓库）
 
-核心开发者：A 同学
+核心开发者：Flora (F416-Y)
 
 ### 功能模块
 
@@ -40,7 +40,7 @@
        ▼          ▼
 ┌──────────┐  ┌──────────────────┐
 │ 搜索服务  │  │  千问大模型 (LLM)  │
-│ (B同学)   │  │  生成推荐语        │
+│ (B 同学 / yinanliu696-blip)   │  │  生成推荐语        │
 └────┬─────┘  └──────────────────┘
      │
      ▼
@@ -98,8 +98,8 @@ docker run -p 7860:7860 \
 
 | 角色 | 负责同学 | 核心职责 | 代码仓库 |
 |------|---------|---------|---------|
-| 图像处理 & Agent 后端 | A 同学 | ResNet18 特征提取、t-SNE 可视化、FastAPI Agent 调度、多模态 LLM 提示词融合、Docker 部署 | 本仓库 |
-| 向量检索引擎 | B 同学 | 商品图片建库、向量相似度检索（FAISS/Milvus）、搜索 API 服务 | SearchEasy-Search |
+| 图像处理 & Agent 后端 | Flora (F416-Y) | ResNet18 特征提取、t-SNE 可视化、FastAPI Agent 调度、多模态 LLM 提示词融合、Docker 部署 | 本仓库 |
+| 向量检索引擎 | B 同学 (yinanliu696-blip) | 商品图片建库、向量相似度检索（FAISS/Milvus）、搜索 API 服务 | SearchEasy-Search |
 | 前端展示 | C 同学 | 用户上传交互、推荐结果展示、反馈 UI、移动端适配 | SearchEasy-Frontend |
 
 ---
