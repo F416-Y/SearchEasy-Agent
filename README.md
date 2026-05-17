@@ -104,7 +104,7 @@ docker run -p 7860:7860 \
 |------|---------|---------|---------|
 | 图像处理 & Agent 后端 | Flora (F416-Y) | ResNet18 特征提取、t-SNE 可视化、FastAPI Agent 调度、多模态 LLM 提示词融合、Docker 部署 | 本仓库 |
 | 向量检索引擎 | B 同学 (yinanliu696-blip) | 商品图片建库、向量相似度检索（FAISS/Milvus）、搜索 API 服务 | SearchEasy-Search |
-| 前端展示 | C 同学 | 用户上传交互、推荐结果展示、反馈 UI、移动端适配 | SearchEasy-Frontend |
+| 前端展示 | C 同学 (magic-bear)| 用户上传交互、推荐结果展示、反馈 UI、移动端适配 | SearchEasy-Frontend |
 
 ---
 
