@@ -2,313 +2,253 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SearchEasy — AI 导购</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>SearchEasy · AI导购</title>
 <style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
-    --bg: #f0f4f8;
-    --card: #ffffff;
-    --primary: #3b5998;
-    --accent: #5b7ec2;
-    --text: #2d3748;
-    --sub: #718096;
-    --border: #e2e8f0;
-    --shadow: 0 4px 24px rgba(0,0,0,.06);
-    --radius: 16px;
+    --primary: #4F6EF7; --primary-dark: #3B54D4; --bg: #F0F4FF;
+    --surface: #FFFFFF; --text: #1A1D2E; --text-secondary: #6B7280;
+    --text-muted: #9CA3AF; --bubble-user: #EEF1FF; --bubble-ai: #FFFFFF;
+    --border: #E5E7F0; --shadow-sm: 0 1px 3px rgba(0,0,0,.04);
+    --shadow-md: 0 4px 16px rgba(0,0,0,.06); --shadow-lg: 0 12px 32px rgba(79,110,247,.12);
+    --radius-sm: 12px; --radius-md: 18px; --radius-lg: 24px;
   }
-  * { margin:0; padding:0; box-sizing:border-box; }
   body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
-    background: linear-gradient(135deg, #e8edf5 0%, #f0f4f8 30%, #faf5f0 70%, #f5effa 100%);
-    min-height: 100vh; color: var(--text);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    background: var(--bg); color: var(--text); min-height: 100dvh;
+    display: flex; flex-direction: column; -webkit-font-smoothing: antialiased;
   }
+  .header {
+    background: linear-gradient(135deg, #4F6EF7 0%, #6C8CFF 100%);
+    padding: 12px 20px; text-align: center; color: #fff; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .header h1 { font-size: 1.2rem; font-weight: 700; }
+  .header .dot { width: 8px; height: 8px; border-radius: 50%; background: #4ADE80; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:.4} 50%{opacity:1} }
 
-  /* ── Header ── */
-  header {
-    background: linear-gradient(135deg, #2d3a6e 0%, #3b5998 40%, #4a6db5 100%);
-    color: #fff; padding: 1rem 2rem;
-    display: flex; align-items: center; justify-content: space-between;
-    box-shadow: 0 2px 16px rgba(59,89,152,.2);
-  }
-  header h1 { font-size: 1.5rem; font-weight: 700; letter-spacing: .02em; }
-  .badge {
-    background: rgba(255,255,255,.18); padding: .3rem .8rem; border-radius: 20px;
-    font-size: .78rem; backdrop-filter: blur(4px);
-  }
+  .chat-container { flex:1; overflow-y:auto; padding:16px 12px 8px; display:flex; flex-direction:column; gap:14px; scroll-behavior:smooth; }
+  .welcome { text-align:center; padding:20px 16px 8px; }
+  .welcome-icon { width:56px;height:56px; background:linear-gradient(135deg,#4F6EF7,#6C8CFF); border-radius:20px; display:flex; align-items:center; justify-content:center; margin:0 auto 12px; font-size:28px; color:#fff; box-shadow:var(--shadow-lg); }
+  .welcome h3 { font-size:1.05rem; font-weight:600; margin-bottom:4px; }
+  .welcome p { font-size:.82rem; color:var(--text-secondary); max-width:280px; margin:0 auto; }
+  .quick-chips { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; padding:0 4px; }
+  .quick-chip { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-sm); padding:8px 14px; font-size:.78rem; color:var(--text); cursor:pointer; transition:all .2s; white-space:nowrap; }
+  .quick-chip:hover { border-color:var(--primary); color:var(--primary); box-shadow:var(--shadow-sm); }
+  .quick-chip:active { transform:scale(.96); }
 
-  /* ── Layout ── */
-  .container { max-width: 960px; margin: 0 auto; padding: 1.5rem; }
-  .card {
-    background: var(--card); border-radius: var(--radius);
-    padding: 1.5rem; margin-bottom: 1.5rem;
-    box-shadow: var(--shadow); border: 1px solid var(--border);
-  }
+  .message { display:flex; flex-direction:column; max-width:88%; animation: fadeInUp .35s ease; }
+  @keyframes fadeInUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+  .message.user { align-self:flex-end; }
+  .message.assistant { align-self:flex-start; }
+  .bubble { padding:12px 16px; border-radius:var(--radius-md); font-size:.88rem; line-height:1.55; word-break:break-word; }
+  .message.user .bubble { background:var(--bubble-user); border-bottom-right-radius:6px; }
+  .message.assistant .bubble { background:var(--bubble-ai); border:1px solid var(--border); border-bottom-left-radius:6px; box-shadow:var(--shadow-sm); }
+  .message-time { font-size:.68rem; color:var(--text-muted); margin-top:4px; padding:0 4px; }
+  .message.user .message-time { text-align:right; }
 
-  /* ── Upload ── */
-  .upload-zone {
-    border: 2.5px dashed var(--primary);
-    border-radius: var(--radius); padding: 2.5rem 1.5rem;
-    text-align: center; cursor: pointer; transition: all .25s;
-    background: linear-gradient(180deg, #f7f9fc 0%, #fff 100%);
-  }
-  .upload-zone:hover, .upload-zone.drag-over {
-    border-color: var(--accent); background: #eef2fa; transform: translateY(-1px);
-    box-shadow: 0 8px 24px rgba(59,89,152,.1);
-  }
-  .upload-icon { font-size: 3rem; margin-bottom: .5rem; }
-  .upload-hint { color: var(--sub); font-size: .85rem; margin-top: .4rem; }
-  #preview-img { max-width: 200px; max-height: 200px; border-radius: 12px; margin-top: 1rem; display: none; }
-  .btn-row { display: flex; gap: .75rem; justify-content: center; margin-top: 1rem; flex-wrap: wrap; }
+  .products-row { display:flex; gap:12px; margin-top:12px; overflow-x:auto; padding-bottom:4px; scroll-snap-type:x mandatory; -webkit-overflow-scrolling:touch; }
+  .products-row::-webkit-scrollbar { height:4px; }
+  .products-row::-webkit-scrollbar-thumb { background:var(--border); border-radius:4px; }
+  .product-card { min-width:160px; max-width:180px; flex-shrink:0; background:#FAFBFF; border:1px solid var(--border); border-radius:var(--radius-md); overflow:hidden; scroll-snap-align:start; transition:transform .2s,box-shadow .2s; }
+  .product-card:hover { transform:translateY(-3px); box-shadow:var(--shadow-md); }
+  .product-card img { width:100%; aspect-ratio:1; object-fit:cover; background:#EFF2FA; }
+  .product-info { padding:10px 12px; }
+  .product-name { font-size:.8rem; font-weight:600; margin-bottom:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .product-desc { font-size:.68rem; color:var(--text-secondary); margin-bottom:4px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .product-score { font-size:.65rem; color:var(--primary); background:#EEF1FF; border-radius:8px; padding:4px 8px; display:inline-block; }
 
-  /* ── Buttons ── */
-  .btn {
-    display: inline-flex; align-items: center; gap: .4rem;
-    padding: .7rem 1.6rem; border-radius: 28px; font-size: .92rem;
-    font-weight: 600; border: none; cursor: pointer; transition: all .2s;
-  }
-  .btn-primary { background: linear-gradient(135deg, #3b5998, #4a6db5); color: #fff; }
-  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(59,89,152,.3); }
-  .btn-outline { background: #fff; color: var(--primary); border: 1.5px solid var(--primary); }
-  .btn-outline:hover { background: #f0f4fa; }
-  .btn:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+  .typing-dots { display:flex; gap:4px; padding:12px 16px; align-items:center; }
+  .typing-dots .d { width:7px;height:7px; border-radius:50%; background:var(--primary); animation:dotBounce 1.4s infinite ease-in-out both; }
+  .d:nth-child(1){animation-delay:-.32s} .d:nth-child(2){animation-delay:-.16s} .d:nth-child(3){animation-delay:0s}
+  @keyframes dotBounce { 0%,80%,100%{transform:scale(.4);opacity:.4} 40%{transform:scale(1);opacity:1} }
 
-  /* ── Results ── */
-  .result-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
-  .result-header h2 { font-size: 1.2rem; }
-  .product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px,1fr)); gap: 1rem; }
-  .product-card {
-    background: #fafcfd; border-radius: 14px; padding: .6rem;
-    text-align: center; border: 1px solid var(--border);
-    transition: transform .15s, box-shadow .15s;
-  }
-  .product-card:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,.08); }
-  .product-card img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 10px; background: #f1f5f9; }
-  .product-card .name { font-size: .78rem; color: var(--sub); margin-top: .4rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .score-bar {
-    height: 6px; background: #e2e8f0; border-radius: 3px; margin: .4rem .4rem 0; overflow: hidden;
-  }
-  .score-fill { height: 100%; border-radius: 3px; background: linear-gradient(90deg, #5b9bd5, #3b5998); }
+  .input-area { flex-shrink:0; padding:10px 12px 16px; background:linear-gradient(180deg,transparent,var(--bg) 30%); position:sticky; bottom:0; }
+  .input-row { display:flex; gap:8px; background:var(--surface); border:1.5px solid var(--border); border-radius:var(--radius-lg); padding:4px 4px 4px 16px; align-items:center; box-shadow:var(--shadow-md); transition:border-color .2s; }
+  .input-row:focus-within { border-color:var(--primary); box-shadow:var(--shadow-lg); }
+  .input-row input { flex:1; border:none; outline:none; font-size:.9rem; font-family:inherit; background:transparent; padding:10px 0; color:var(--text); }
+  .input-row input::placeholder { color:var(--text-muted); }
+  .btn-icon { width:40px;height:40px; border-radius:50%; border:none; cursor:pointer; flex-shrink:0; display:flex; align-items:center; justify-content:center; transition:transform .15s,box-shadow .15s; font-size:1.1rem; }
+  .btn-send { background:linear-gradient(135deg,var(--primary),var(--primary-dark)); color:#fff; }
+  .btn-send:hover { transform:scale(1.05); box-shadow:0 4px 14px rgba(79,110,247,.35); }
+  .btn-send:disabled { opacity:.5; cursor:not-allowed; transform:none; box-shadow:none; }
+  .btn-camera { background:#fff; color:var(--primary); border:1.5px solid var(--border); margin-right:4px; }
+  .btn-camera:hover { border-color:var(--primary); }
 
-  /* ── Recommendation ── */
-  .rec-bubble {
-    background: linear-gradient(135deg, #f0f4fa, #faf5f0);
-    border-radius: 20px; padding: 1.2rem 1.5rem; margin-top: 1rem;
-    border-left: 4px solid var(--primary);
-    line-height: 1.7; font-size: .95rem;
+  .status-bar { text-align:center; font-size:.65rem; color:var(--text-muted); margin-top:4px; }
+  @media (max-width:480px) {
+    .header { padding:10px 14px; } .header h1 { font-size:1.05rem; }
+    .message { max-width:92%; } .product-card { min-width:140px; max-width:155px; }
+    .bubble { font-size:.82rem; padding:10px 14px; }
   }
-  .rec-bubble::before { content: '🤖 AI 推荐'; display: block; font-weight: 700; margin-bottom: .5rem; color: var(--primary); }
-
-  /* ── States ── */
-  .loading { text-align: center; padding: 2rem; color: var(--sub); }
-  .spinner {
-    display: inline-block; width: 36px; height: 36px;
-    border: 3px solid #e2e8f0; border-top-color: var(--primary);
-    border-radius: 50%; animation: spin .8s linear infinite;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  .error { background: #fff5f5; color: #c53030; padding: 1rem; border-radius: 12px; border: 1px solid #fed7d7; }
-  .empty { text-align: center; color: var(--sub); padding: 2rem; font-size: .9rem; }
-
-  /* ── Tabs ── */
-  .tabs { display: flex; gap: .25rem; margin-bottom: 1rem; background: #f1f5f9; border-radius: 12px; padding: 3px; }
-  .tab {
-    flex: 1; text-align: center; padding: .5rem 1rem; border-radius: 10px;
-    cursor: pointer; font-weight: 600; font-size: .85rem; transition: all .2s; color: var(--sub);
-  }
-  .tab.active { background: #fff; color: var(--primary); box-shadow: 0 1px 4px rgba(0,0,0,.06); }
-
-  @media (max-width: 600px) {
-    .product-grid { grid-template-columns: repeat(2,1fr); }
-    header { padding: .8rem 1rem; }
-    header h1 { font-size: 1.2rem; }
-  }
-
-  /* Footer */
-  footer { text-align: center; padding: 1.5rem; color: var(--sub); font-size: .78rem; }
-  footer a { color: var(--primary); text-decoration: none; }
 </style>
 </head>
 <body>
 
-<header>
-  <h1>🛒 SearchEasy</h1>
-  <span class="badge" id="status-badge">🔗 连接中...</span>
-</header>
-
-<div class="container">
-
-  <!-- ── Upload Card ── -->
-  <div class="card">
-    <div class="upload-zone" id="upload-zone">
-      <div class="upload-icon">📸</div>
-      <div><strong>点击上传</strong> 或拖拽图片到此处</div>
-      <div class="upload-hint">支持 JPG / PNG / WebP</div>
-      <input type="file" id="file-input" accept="image/*" hidden>
-      <img id="preview-img" alt="预览">
-    </div>
-    <div class="btn-row">
-      <button class="btn btn-primary" id="btn-search" disabled>🔍 搜索相似商品</button>
-      <button class="btn btn-outline" id="btn-recommend" disabled>✨ AI 智能推荐</button>
-    </div>
-  </div>
-
-  <!-- ── Results ── -->
-  <div class="card" id="results-card" style="display:none">
-    <div class="tabs">
-      <div class="tab active" data-tab="products">📦 商品结果</div>
-      <div class="tab" data-tab="recommendation">💬 AI 推荐语</div>
-    </div>
-    <div id="tab-products"></div>
-    <div id="tab-recommendation" style="display:none"></div>
-  </div>
-
+<div class="header">
+  <div class="dot"></div><h1>SearchEasy · AI导购</h1>
 </div>
 
+<div class="chat-container" id="chat">
+  <div class="welcome" id="welcome">
+    <div class="welcome-icon">🛍️</div>
+    <h3>你好，我是你的AI导购</h3>
+    <p>告诉我你想买什么，或者上传商品图片，我帮你找到最合适的</p>
+    <div class="quick-chips" style="margin-top:14px">
+      <span class="quick-chip" onclick="send(this.textContent)">适合夏天穿的连衣裙</span>
+      <span class="quick-chip" onclick="send(this.textContent)">送男朋友的生日礼物</span>
+      <span class="quick-chip" onclick="send(this.textContent)">健身减脂吃的健康零食</span>
+      <span class="quick-chip" onclick="send(this.textContent)">适合见家长的穿搭</span>
+    </div>
+  </div>
+</div>
+
+<div class="input-area">
+  <div class="input-row">
+    <button class="btn-icon btn-camera" onclick="document.getElementById('fileInput').click()" title="拍照搜索">📷</button>
+    <input type="text" id="msgInput" placeholder="描述你的购物需求..." autocomplete="off" maxlength="500">
+    <input type="file" id="fileInput" accept="image/*" hidden onchange="uploadImage(this)">
+    <button class="btn-icon btn-send" id="btnSend" onclick="send()" aria-label="发送">➤</button>
+  </div>
+  <div class="status-bar" id="status"></div>
+</div>
 
 <script>
-  // ═══════════════ Config ═══════════════
-  const API_BASE = 'https://yunyunwaifu-flora-ai-shop-agent.hf.space';
-  let selectedFile = null;
+const API = 'https://yunyunwaifu-flora-ai-shop-agent.hf.space';
+let loading = false;
 
-  // ═══════════════ Elements ═══════════════
-  const $ = id => document.getElementById(id);
-  const uploadZone = $('upload-zone');
-  const fileInput = $('file-input');
-  const previewImg = $('preview-img');
-  const btnSearch = $('btn-search');
-  const btnRecommend = $('btn-recommend');
-  const resultsCard = $('results-card');
-  const statusBadge = $('status-badge');
+function $(id){return document.getElementById(id)}
+function time(){return new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'})}
+function scroll(){const c=$('chat');c.scrollTo({top:c.scrollHeight,behavior:'smooth'})}
+function esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML}
 
-  // ═══════════════ Health Check ═══════════════
-  async function checkHealth() {
-    try {
-      const r = await fetch(`${API_BASE}/api/health`);
-      const d = await r.json();
-      if (d.status === 'ok') {
-        statusBadge.textContent = `🟢 ${d.engine.total_images} 件商品在线`;
-        statusBadge.style.background = 'rgba(72,187,120,.25)';
-      } else {
-        statusBadge.textContent = '🟡 服务异常';
-      }
-    } catch {
-      statusBadge.textContent = '🔴 离线';
-      statusBadge.style.background = 'rgba(245,101,101,.25)';
-    }
-  }
-  checkHealth();
+function addMsg(role, html){
+  const el = document.createElement('div');
+  el.className = 'message '+role;
+  el.innerHTML = html;
+  $('chat').appendChild(el);
+  scroll();
+}
 
-  // ═══════════════ Upload ═══════════════
-  uploadZone.addEventListener('click', () => fileInput.click());
-  uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
-  uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
-  uploadZone.addEventListener('drop', e => {
-    e.preventDefault();
-    uploadZone.classList.remove('drag-over');
-    const f = e.dataTransfer.files[0];
-    if (f) handleFile(f);
-  });
-  fileInput.addEventListener('change', () => {
-    if (fileInput.files[0]) handleFile(fileInput.files[0]);
-  });
+function addUser(text){
+  addMsg('user',`<div class="bubble">${esc(text)}</div><div class="message-time">${time()}</div>`);
+}
 
-  function handleFile(file) {
-    if (!file.type.startsWith('image/')) { alert('请上传图片文件'); return; }
-    selectedFile = file;
-    const reader = new FileReader();
-    reader.onload = e => { previewImg.src = e.target.result; previewImg.style.display = 'block'; };
-    reader.readAsDataURL(file);
-    btnSearch.disabled = false;
-    btnRecommend.disabled = false;
-  }
+function addLoading(){
+  const el = document.createElement('div');
+  el.className = 'message assistant';
+  el.id = 'loadingMsg';
+  el.innerHTML = '<div class="bubble"><div class="typing-dots"><div class="d"></div><div class="d"></div><div class="d"></div></div></div>';
+  $('chat').appendChild(el);
+  scroll();
+}
 
-  // ═══════════════ API Calls ═══════════════
-  async function callAPI(endpoint) {
-    if (!selectedFile) return;
-    const form = new FormData();
-    form.append('file', selectedFile);
+function removeLoading(){
+  const el = document.getElementById('loadingMsg');
+  if(el) el.remove();
+}
 
-    showLoading();
-    try {
-      const r = await fetch(`${API_BASE}${endpoint}`, { method: 'POST', body: form });
-      if (!r.ok) {
-        const err = await r.json().catch(() => ({}));
-        throw new Error(err.detail || `HTTP ${r.status}`);
-      }
-      return await r.json();
-    } catch (e) {
-      showError(e.message);
-      return null;
-    }
-  }
-
-  btnSearch.addEventListener('click', async () => {
-    const data = await callAPI('/api/search');
-    if (data) renderProducts(data);
-  });
-
-  btnRecommend.addEventListener('click', async () => {
-    const data = await callAPI('/api/agent/recommend');
-    if (data) renderFull(data);
-  });
-
-  // ═══════════════ Render ═══════════════
-  function showLoading() {
-    resultsCard.style.display = 'block';
-    $('tab-products').innerHTML = '<div class="loading"><div class="spinner"></div><p>正在分析...</p></div>';
-    $('tab-recommendation').innerHTML = '';
-    $('tab-recommendation').style.display = 'none';
-    document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', i===0));
-  }
-
-  function showError(msg) {
-    resultsCard.style.display = 'block';
-    $('tab-products').innerHTML = `<div class="error">❌ ${msg}</div>`;
-  }
-
-  function renderProducts(data) {
-    resultsCard.style.display = 'block';
-    $('tab-recommendation').style.display = 'none';
-    document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', i===0));
-
-    const html = `
-      <div class="result-header">
-        <h2>📦 相似商品 (${data.results_count} / ${data.total_indexed})</h2>
-        <span style="color:var(--sub);font-size:.85rem">查询: ${data.query}</span>
-      </div>
-      ${data.results.length === 0 ? '<div class="empty">未找到相似商品，试试其他图片</div>' : `
-        <div class="product-grid">
-          ${data.results.map(r => `
-            <div class="product-card">
-              <img src="${r.image_url.startsWith('http') ? r.image_url : API_BASE + (r.image_url.startsWith('/') ? '' : '/') + r.image_url}" alt="${r.label}" onerror="this.src='https://placehold.co/300/f1f5f9/8ba0bc?text=商品'">
-              <div class="name">${r.label || r.image_path.split('/').pop()}</div>
-              <div class="score-bar"><div class="score-fill" style="width:${(r.score*100).toFixed(0)}%"></div></div>
-              <div style="font-size:.75rem;color:var(--sub);margin-top:2px">${(r.score*100).toFixed(1)}%</div>
-            </div>
-          `).join('')}
+function addAI(reply, products){
+  let cards = '';
+  if(products && products.length){
+    cards = '<div class="products-row">';
+    products.forEach(p => {
+      const img = p.image_url || 'https://placehold.co/400/EFF2FA/6B7280?text=商品';
+      cards += `<div class="product-card">
+        <img src="${esc(img)}" alt="${esc(p.name)}" loading="lazy" onerror="this.src='https://placehold.co/400/EFF2FA/6B7280?text=商品'">
+        <div class="product-info">
+          <div class="product-name">${esc(p.name)}</div>
+          <div class="product-desc">${esc(p.description)}</div>
+          ${p.score ? `<div class="product-score">匹配 ${(p.score*100).toFixed(0)}%</div>` : ''}
         </div>
-      `}
-    `;
-    $('tab-products').innerHTML = html;
-  }
-
-  function renderFull(data) {
-    renderProducts({ query: '推荐查询', total_indexed: data.products.length, results_count: data.products.length, results: data.products });
-    $('tab-recommendation').innerHTML = data.recommendation_note
-      ? `<div class="rec-bubble">${data.recommendation_note}</div>`
-      : '<div class="empty">LLM 未返回推荐语</div>';
-  }
-
-  // ═══════════════ Tabs ═══════════════
-  document.querySelectorAll('.tab').forEach(tab => {
-    tab.addEventListener('click', () => {
-      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-      tab.classList.add('active');
-      $('tab-products').style.display = tab.dataset.tab === 'products' ? '' : 'none';
-      $('tab-recommendation').style.display = tab.dataset.tab === 'recommendation' ? '' : 'none';
+      </div>`;
     });
-  });
-</script>
+    cards += '</div>';
+  }
+  addMsg('assistant',`<div class="bubble">${esc(reply)}${cards}</div><div class="message-time">${time()}</div>`);
+}
 
+async function send(text){
+  const msg = text || $('msgInput').value.trim();
+  if(!msg || loading) return;
+  $('welcome').style.display = 'none';
+  loading = true; $('btnSend').disabled = true;
+  $('msgInput').value = '';
+  addUser(msg);
+  addLoading();
+
+  try {
+    const t0 = performance.now();
+    const r = await fetch(API+'/api/chat',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({message:msg})
+    });
+    const d = await r.json();
+    const ms = Math.round(performance.now()-t0);
+    removeLoading();
+    if(r.ok){
+      addAI(d.reply, d.products||[]);
+      $('status').textContent = (d.source==='ai'?'AI ':'')+'推荐 · '+(d.elapsed_ms||ms)+'ms';
+    } else {
+      addAI('抱歉，出了点问题：'+ (d.detail||d.error||'请重试'), []);
+    }
+  } catch(e){
+    removeLoading();
+    addAI('网络连接失败，请确认后端服务已启动。', []);
+  }
+  loading = false; $('btnSend').disabled = false;
+  $('msgInput').focus();
+}
+
+async function uploadImage(input){
+  const file = input.files[0];
+  if(!file || loading) return;
+  $('welcome').style.display = 'none';
+  loading = true;
+  addUser('📷 上传了图片：'+file.name);
+  addLoading();
+
+  try {
+    const fd = new FormData(); fd.append('file', file);
+    const t0 = performance.now();
+    const r = await fetch(API+'/api/agent/recommend', {method:'POST', body:fd});
+    const d = await r.json();
+    const ms = Math.round(performance.now()-t0);
+    removeLoading();
+    if(r.ok && d.recommendation_note){
+      const products = (d.products||[]).map(p=>({
+        name: p.label||p.image_path.split('/').pop(),
+        description: '相似度 '+(p.similarity_score*100).toFixed(1)+'%',
+        image_url: p.image_url||'',
+        score: p.similarity_score
+      }));
+      addAI(d.recommendation_note, products);
+      $('status').textContent = '图像搜索 · '+ms+'ms';
+    } else {
+      addAI('图片搜索失败，请重试。', []);
+    }
+  } catch(e){
+    removeLoading();
+    addAI('网络连接失败。', []);
+  }
+  loading = false; input.value = '';
+}
+
+$('msgInput').addEventListener('keydown', e => {
+  if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); send(); }
+});
+$('msgInput').focus();
+
+// Health check
+(async function(){
+  try {
+    const r = await fetch(API+'/api/health');
+    const d = await r.json();
+    if(d.status==='ok') $('status').textContent = '已连接 · '+d.engine.total_images+' 件商品在线';
+  } catch(e){ $('status').textContent = '离线模式'; }
+})();
+</script>
 </body>
 </html>

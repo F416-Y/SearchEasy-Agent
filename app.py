@@ -202,6 +202,52 @@ async def call_llm(prompt: str) -> str:
 
 
 # ═══════════════════════════════════════════════════════════════
+# 文本检索 (RAG)
+# ═══════════════════════════════════════════════════════════════
+
+# 启动时加载商品元数据
+_product_meta: dict[str, str] = {}
+_product_meta_loaded = False
+
+
+def _ensure_meta_loaded():
+    global _product_meta, _product_meta_loaded
+    if _product_meta_loaded:
+        return
+    import json
+    meta_path = Path("product_meta.json")
+    if meta_path.exists():
+        with open(meta_path, "r", encoding="utf-8") as f:
+            _product_meta = json.load(f)
+    _product_meta_loaded = True
+
+
+def text_search(query: str, top_k: int = 5) -> list[dict]:
+    """关键词匹配检索商品"""
+    _ensure_meta_loaded()
+    if not _product_meta:
+        return []
+
+    keywords = set(query.lower())
+    scored = []
+    for path, desc in _product_meta.items():
+        desc_lower = desc.lower()
+        score = sum(1 for kw in keywords if kw in desc_lower)
+        if score > 0:
+            scored.append((path, desc, score))
+
+    scored.sort(key=lambda x: -x[2])
+    results = []
+    for path, desc, score in scored[:top_k]:
+        results.append({
+            "image_path": path,
+            "label": desc,
+            "score": round(min(score / max(len(keywords), 1), 1.0), 4),
+        })
+    return results
+
+
+# ═══════════════════════════════════════════════════════════════
 # API 端点
 # ═══════════════════════════════════════════════════════════════
 
@@ -245,6 +291,70 @@ async def search_image(file: UploadFile = File(...)):
     finally:
         if os.path.exists(image_path):
             os.unlink(image_path)
+
+
+@app.post("/api/chat")
+async def chat(req: dict):
+    """RAG 对话导购：自然语言购物咨询 → 商品检索 + LLM 推荐"""
+    message = (req.get("message") or req.get("query") or "").strip()
+    if not message:
+        raise HTTPException(status_code=400, detail="请输入购物需求")
+
+    history = req.get("history", [])
+    t0 = __import__("time").time()
+
+    # 1. 文本检索匹配商品
+    image_base_url = os.getenv("IMAGE_BASE_URL", "").rstrip("/")
+    products = text_search(message, top_k=6)
+    for p in products:
+        p["image_url"] = search_engine.get_image_url(p["image_path"], image_base_url) if search_engine.is_loaded else ""
+
+    # 2. 构建 Prompt
+    products_text = "\n".join(
+        f"- [{p['label']}] (匹配度: {p['score']:.0%})"
+        for p in products
+    ) if products else "(未找到匹配商品，请根据常识推荐)"
+
+    history_text = ""
+    if history:
+        history_text = "对话历史：\n" + "\n".join(
+            f"用户: {h.get('user','')}\n助手: {h.get('assistant','')}" for h in history[-3:]
+        ) + "\n\n"
+
+    prompt = (
+        "你是一个专业的AI购物助手，叫「搜EASY」。"
+        f"{history_text}"
+        f"用户当前需求：{message}\n\n"
+        f"检索到的匹配商品：\n{products_text}\n\n"
+        "请根据用户需求，从匹配商品中推荐2-3个最合适的，用亲切口语化的语气说明推荐理由。"
+        "如果匹配商品与需求不相关，可以忽略并给出你自己的建议。控制在200字以内。"
+    )
+
+    # 3. 调用 LLM
+    try:
+        reply = await call_llm(prompt)
+        source = "ai"
+    except HTTPException:
+        reply = f"根据你的需求「{message}」，我为你找到了{len(products)}件相关商品，快看看吧！"
+        source = "fallback"
+
+    elapsed_ms = int((__import__("time").time() - t0) * 1000)
+
+    return {
+        "reply": reply,
+        "products": [
+            {
+                "name": p["label"].split("·")[0].strip() if "·" in p["label"] else p["label"],
+                "description": p["label"].split("·", 1)[-1].strip() if "·" in p["label"] else "",
+                "price": "暂无",
+                "image_url": p.get("image_url", ""),
+                "score": p["score"],
+            }
+            for p in products[:4]
+        ],
+        "source": source,
+        "elapsed_ms": elapsed_ms,
+    }
 
 
 @app.post("/api/agent/recommend")
