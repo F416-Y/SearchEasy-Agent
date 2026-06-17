@@ -1,3 +1,12 @@
+---
+title: SearchEasy
+emoji: 🛒
+colorFrom: blue
+colorTo: indigo
+sdk: docker
+pinned: false
+---
+
 # SearchEasy — 多模态 AI 导购系统
 
 > 📸 拍照即搜 · AI 智能推荐 · 全链路独立
