@@ -2,7 +2,8 @@
 
 > 📸 拍照即搜 · AI 智能推荐 · 全链路独立
 
-[🛍️ 在线体验](https://yunyunwaifu-flora-ai-shop-agent.hf.space/docs)
+[🛍️ 在线体验](https://yunyunwaifu-flora-ai-shop-agent.hf.space/docs) ·
+[📦 GitHub](https://github.com/F416-Y/SearchEasy-Agent)
 
 ---
 
@@ -168,18 +169,48 @@ curl -X POST http://localhost:7860/api/search \
 
 ## Docker 部署
 
+### 本地构建
+
 ```bash
-# 1. 先在本地构建特征库
+# 1. 构建特征库
 python extract_features.py product_images -o features.npz
 
-# 2. 构建镜像 (需取消 Dockerfile 中 COPY features.npz 和 product_images 的注释)
-docker build -t search-easy .
+# 2. 取消 Dockerfile 中这两行的注释:
+#    COPY features.npz .
+#    COPY product_images/ ./product_images/
 
-# 3. 运行
-docker run -p 7860:7860 \
-  -e LLM_API_KEY=your_key \
-  search-easy
+# 3. 构建 & 运行
+docker build -t search-easy .
+docker run -p 7860:7860 -e LLM_API_KEY=your_key search-easy
 ```
+
+### HuggingFace Spaces 部署
+
+由于国内网络限制无法直接 `git push` 到 HF，采用 **GitHub → HF 自动同步**：
+
+**首次设置 (在 HF 网页操作一次即可)：**
+
+1. 打开 [Space Settings](https://huggingface.co/spaces/yunyunwaifu/flora-ai-shop-agent/settings)
+2. **Repository Secrets** → 添加 `LLM_API_KEY`
+3. **Connected GitHub Repo** → 填入 `F416-Y/SearchEasy-Agent`，分支 `main`
+4. 保存后 HF 会自动拉取 GitHub 代码并 Docker build
+
+**日常更新流程：**
+
+```bash
+git add . && git commit -m "..."
+git push origin main        # 推 GitHub (国内 OK)
+# → HF 自动检测更新 → 拉代码 → 重建 → 部署 ✅
+```
+
+> 之后只需要 `git push` 到 GitHub，HF 自动完成剩余工作，全程不经过你的网络。
+
+**关于特征库和图片：**
+
+由于 `features.npz` 和 `product_images/` 体积较大，建议：
+- 在本地用 `extract_features.py` 生成 `features.npz`
+- 通过 HF Spaces 网页的 **"Upload files"** 上传到 Space
+- 或者在 Dockerfile 里用 `RUN` 指令在构建时下载 (如果图片托管在别处)
 
 在线地址：[https://yunyunwaifu-flora-ai-shop-agent.hf.space/docs](https://yunyunwaifu-flora-ai-shop-agent.hf.space/docs)
 
