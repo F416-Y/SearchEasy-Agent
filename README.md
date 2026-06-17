@@ -1,117 +1,206 @@
-# 搜-easy (SearchEasy)
+# SearchEasy — 多模态 AI 导购系统
 
-多模态电商智能导购 Agent —— 上传商品图片，获取 AI 驱动的个性化购物推荐。
+> 📸 拍照即搜 · AI 智能推荐 · 全链路独立
 
-> [在线体验](https://yunyunwaifu-flora-ai-shop-agent.hf.space/docs)
+[🛍️ 在线体验](https://yunyunwaifu-flora-ai-shop-agent.hf.space/docs)
+
+---
 
 ## 项目概述
 
-搜-easy 是一套多模态电商导购系统。用户上传一张商品图片，系统完成：
+独立全栈实现的「拍照即搜」多模态电商导购系统。用户上传商品照片，系统完成：
 
-1. **图像特征提取** → 2. **向量相似检索** → 3. **大模型生成推荐语** → 4. **前端展示结果**
+```
+拍照上传 → ResNet18 特征提取 → 余弦相似度检索 → LLM 生成推荐语 → 前端展示
+```
 
-用户可对推荐结果进行"喜欢/不喜欢"反馈，系统据此调整后续推荐方向。
+**全链路闭环，无外部服务依赖。**
 
 ---
 
-## 图像处理与 Agent 后端（本仓库）
+## 项目结构
 
-核心开发者：Flora (F416-Y)
+```
+字跳AI/
+├── app.py                         ← FastAPI 推理服务 (核心)
+├── search_engine.py               ← 余弦相似度检索引擎
+├── extract_features.py            ← 工具: ResNet18 批量特征提取
+├── visualize_tsne.py              ← 工具: t-SNE 降维可视化
+├── Dockerfile                     ← 容器化部署
+├── requirements.txt               ← Python 依赖
+├── .env.example                   ← 环境变量模板
+├── .gitignore
+├── features.npz                   ← 预提取的特征库 (需构建)
+├── product_images/                ← 商品图片目录 (需准备)
+│   ├── category_a/
+│   ├── category_b/
+│   └── ...
+├── SearchEasy-Frontend/           ← Streamlit 前端子项目
+│   ├── app.py / requirements.txt / README.md
+└── docs/chat-logs/                ← 开发聊天记录
+```
 
-### 功能模块
+---
 
-| 模块 | 文件 | 说明 |
+## 技术架构
+
+| 模块 | 技术 | 说明 |
 |------|------|------|
-| 图像特征提取 | `extract_features.py` | 基于 ResNet18 提取 512 维特征向量，输出 `.npz` 特征库 |
-| t-SNE 可视化 | `visualize_tsne.py` | 将高维特征降维至 2D，按类别着色生成散点图 |
-| Agent 调度后端 | `app.py` | FastAPI 服务，串联搜索接口与千问大模型，提供推荐与反馈 API |
-| Docker 部署 | `Dockerfile` | 容器化部署至 Hugging Face Spaces |
+| **特征提取** | ResNet18 (PyTorch) | 512 维特征向量，@lru_cache 优化加载 |
+| **向量检索** | 自建 SearchEngine | 余弦相似度 + L2 归一化，argpartition 快速 top-k |
+| **多模态融合** | Prompt Engineering | 视觉特征摘要注入 LLM，实现 RAG 闭环 |
+| **LLM 推理** | 千问 (Qwen) via 阿里百炼 | OpenAI 兼容 API，重试 + 401 友好报错 |
+| **推理服务** | FastAPI + Uvicorn | 异步非阻塞，/images 静态文件挂载 |
+| **可视化验证** | scikit-learn t-SNE | 降维验证 CNN 语义聚类效应 |
+| **部署** | Docker + HF Spaces | CPU 镜像，HEALTHCHECK，代理绕过 |
 
-### 架构说明
+---
 
-```
-用户上传图片
-     │
-     ▼
-┌─────────────────────────────┐
-│  app.py (FastAPI Agent)     │
-│  /api/agent/recommend       │
-│  /api/agent/feedback        │
-└──────┬──────────┬───────────┘
-       │          │
-       ▼          ▼
-┌──────────┐  ┌──────────────────┐
-│ 搜索服务  │  │  千问大模型 (LLM)  │
-│ (B 同学 / yinanliu696-blip)   │  │  生成推荐语        │
-└────┬─────┘  └──────────────────┘
-     │
-     ▼
-┌──────────────────────┐
-│  视觉特征编码进提示词   │
-│  (ResNet18 → 前10维)  │
-└──────────────────────┘
-```
+## 快速开始
 
-### 多模态融合策略
-
-`extract_image_features()` 将图片经 ResNet18 编码为 512 维特征向量，取前 10 维格式化后注入 LLM 提示词，使大模型在生成推荐语时同时感知图像视觉信息与搜索召回结果，实现文本+视觉的多模态融合推荐。
-
-### 本地运行
+### 1. 安装依赖
 
 ```bash
-# 1. 安装依赖
 pip install -r requirements.txt
-
-# 2. 配置环境变量
-cp .env.example .env
-# 编辑 .env 填入你的 LLM_API_KEY
-
-# 3. 启动服务
-uvicorn app:app --host 0.0.0.0 --port 7860
-
-# 4. 特征提取（独立脚本）
-python extract_features.py ./product_images -o features.npz
-
-# 5. t-SNE 可视化（独立脚本）
-python visualize_tsne.py features.npz -o tsne_output.png
 ```
 
-### API 接口
+### 2. 准备数据 & 构建特征库
+
+```bash
+# 将商品图片按类别放入 product_images/
+# 示例结构:
+#   product_images/服装/001.jpg
+#   product_images/服装/002.jpg
+#   product_images/数码/001.jpg
+
+# 提取特征
+python extract_features.py product_images -o features.npz
+```
+
+### 3. 配置环境变量
+
+```bash
+cp .env.example .env
+# 编辑 .env，至少填入 LLM_API_KEY
+```
+
+### 4. 启动服务
+
+```bash
+uvicorn app:app --host 0.0.0.0 --port 7860 --reload
+```
+
+### 5. 验证
+
+```bash
+# 健康检查
+curl http://localhost:7860/api/health
+
+# 交互文档
+open http://localhost:7860/docs
+
+# 搜索测试
+curl -X POST http://localhost:7860/api/search \
+  -F "file=@your_test_image.jpg"
+```
+
+---
+
+## API 接口
 
 | 端点 | 方法 | 说明 |
 |------|------|------|
-| `/api/agent/recommend` | POST | 上传图片，返回相似商品列表 + AI 推荐语 |
-| `/api/agent/feedback` | POST | 提交 `like`/`dislike` 反馈，返回调整后的推荐 |
+| `/api/health` | GET | 健康检查 + 特征库统计 |
+| `/api/search` | POST | 纯图像检索 (不调用 LLM) |
+| `/api/agent/recommend` | POST | 全链路推荐 (检索 + LLM) |
+| `/api/agent/feedback` | POST | 反馈驱动推荐 (like/dislike) |
+| `/images/{path}` | GET | 商品图片访问 |
+| `/docs` | GET | Swagger UI |
 
-### Docker 部署 (Hugging Face Spaces)
+### `/api/search` 响应示例
 
-在线地址：[https://yunyunwaifu-flora-ai-shop-agent.hf.space/docs](https://yunyunwaifu-flora-ai-shop-agent.hf.space/docs)
+```json
+{
+  "query": "test.jpg",
+  "total_indexed": 200,
+  "results_count": 5,
+  "results": [
+    {
+      "image_path": "服装/001.jpg",
+      "image_url": "/images/服装/001.jpg",
+      "score": 0.9532
+    }
+  ]
+}
+```
 
-```bash
-docker build -t search-easy-agent .
-docker run -p 7860:7860 \
-  -e LLM_API_KEY=your_key \
-  -e LLM_MODEL=qwen-plus \
-  -e LLM_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1 \
-  search-easy-agent
+### `/api/agent/recommend` 响应示例
+
+```json
+{
+  "products": [
+    {
+      "image_path": "服装/001.jpg",
+      "image_url": "http://localhost:7860/images/服装/001.jpg",
+      "similarity_score": 0.9532
+    }
+  ],
+  "recommendation_note": "嘿，这件上衣的纹理跟..."
+}
 ```
 
 ---
 
-## 队友协作
+## 环境变量
 
-| 角色 | 负责同学 | 核心职责 | 代码仓库 |
-|------|---------|---------|---------|
-| 图像处理 & Agent 后端 | Flora (F416-Y) | ResNet18 特征提取、t-SNE 可视化、FastAPI Agent 调度、多模态 LLM 提示词融合、Docker 部署 | 本仓库 |
-| 向量检索引擎 | B 同学 (yinanliu696-blip) | 商品图片建库、向量相似度检索（FAISS/Milvus）、搜索 API 服务 | SearchEasy-Search |
-| 前端展示 | C 同学 (magic-bear)| 用户上传交互、推荐结果展示、反馈 UI、移动端适配 | SearchEasy-Frontend |
+| 变量 | 必填 | 默认值 | 说明 |
+|------|------|--------|------|
+| `LLM_API_KEY` | ✅ | — | 阿里百炼 API Key |
+| `LLM_MODEL` | 否 | `qwen-plus` | 模型选择 |
+| `LLM_BASE_URL` | 否 | 国内主域名 | API 地址 |
+| `FEATURES_NPZ` | 否 | `features.npz` | 特征库路径 |
+| `IMAGE_DIR` | 否 | `product_images` | 图片目录 |
+| `TOP_K` | 否 | `5` | 返回结果数 |
+| `MIN_SIMILARITY` | 否 | `0.0` | 最低相似度 |
+| `IMAGE_BASE_URL` | 否 | — | 图片 URL 前缀 |
 
 ---
 
-## 技术栈
+## Docker 部署
 
-- **模型**: ResNet18 (PyTorch), 千问 (Qwen) 系列 via 阿里百炼 DashScope
-- **后端**: FastAPI, httpx, Uvicorn
-- **特征处理**: NumPy, scikit-learn (t-SNE), Pillow
-- **部署**: Docker, Hugging Face Spaces
-- **LLM 协议**: OpenAI-compatible API
+```bash
+# 1. 先在本地构建特征库
+python extract_features.py product_images -o features.npz
+
+# 2. 构建镜像 (需取消 Dockerfile 中 COPY features.npz 和 product_images 的注释)
+docker build -t search-easy .
+
+# 3. 运行
+docker run -p 7860:7860 \
+  -e LLM_API_KEY=your_key \
+  search-easy
+```
+
+在线地址：[https://yunyunwaifu-flora-ai-shop-agent.hf.space/docs](https://yunyunwaifu-flora-ai-shop-agent.hf.space/docs)
+
+---
+
+## 命令行工具
+
+```bash
+# 批量特征提取
+python extract_features.py product_images -o features.npz --device cpu
+
+# t-SNE 可视化 (验证特征语义聚类)
+python visualize_tsne.py features.npz -o tsne_output.png --perplexity 30
+```
+
+---
+
+## 技术亮点
+
+- **独立全栈**：从图像输入到推荐输出，不依赖第三方搜索服务
+- **RAG 闭环**：检索召回 + 视觉特征共同注入 LLM Prompt
+- **快速检索**：L2 归一化 + `argpartition` 实现 O(n) top-k
+- **生产就绪**：HEALTHCHECK、分级错误处理、LLM 重试机制
+- **可视化验证**：t-SNE 降维验证 ResNet18 特征空间的类别聚类

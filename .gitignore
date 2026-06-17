@@ -1,6 +1,118 @@
+# ========== 环境 & 密钥 ==========
 .env
+.envrc
+*.key
+*.pem
+
+# ========== Python 编译缓存 ==========
 __pycache__/
-*.pyc
+*.py[codz]
+*$py.class
+
+# ========== 虚拟环境 ==========
 .venv/
 venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# ========== 分发打包 ==========
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
 *.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+*.manifest
+*.spec
+
+# ========== 安装日志 ==========
+pip-log.txt
+pip-delete-this-directory.txt
+
+# ========== 测试 & 覆盖率 ==========
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py.cover
+.hypothesis/
+.pytest_cache/
+cover/
+
+# ========== Jupyter ==========
+.ipynb_checkpoints
+
+# ========== IDE / 编辑器 ==========
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.spyderproject
+.spyproject
+.ropeproject
+
+# ========== 类型检查 ==========
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pyre/
+.pytype/
+cython_debug/
+
+# ========== Linter / Formatter ==========
+.ruff_cache/
+.pdm-python
+.pdm-build/
+.pixi
+__pypackages__/
+
+# ========== 框架 ==========
+.sass-cache/
+.webassets-cache
+instance/
+.scrapy
+.streamlit/secrets.toml
+
+# ========== 文档构建 ==========
+docs/_build/
+/site
+
+# ========== 系统文件 ==========
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ========== Abstra / Marimo ==========
+.abstra/
+marimo/_static/
+marimo/_lsp/
+__marimo__/
+
+# ========== 临时文件 ==========
+tempCodeRunnerFile.py
+*.zip
+*.tar.gz
+*.7z
+
+# ========== 聊天日志 (已在 docs/chat-logs 跟踪) ==========
+# docs/chat-logs/ 保留在版本控制中，手动归档
