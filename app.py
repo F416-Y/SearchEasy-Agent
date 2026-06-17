@@ -222,6 +222,22 @@ def _ensure_meta_loaded():
     _product_meta_loaded = True
 
 
+def _parse_label(label: str) -> tuple:
+    """解析 '品名 · 描述 · ¥价格' 格式的标签"""
+    parts = label.split("·")
+    name = parts[0].strip() if len(parts) >= 1 else label
+    desc = parts[1].strip().replace(" ¥", "").strip() if len(parts) >= 2 else ""
+    price_str = ""
+    for p in parts:
+        if "¥" in p:
+            price_str = p.strip().replace("¥", "").strip()
+    try:
+        price = int(price_str) if price_str else 0
+    except ValueError:
+        price = 0
+    return name, desc, price
+
+
 def text_search(query: str, top_k: int = 5) -> list[dict]:
     """关键词匹配检索商品，兼容新旧 metadata 格式"""
     _ensure_meta_loaded()
@@ -434,6 +450,9 @@ async def recommend(file: UploadFile = File(...)):
                     "image_path": r["image_path"],
                     "image_url": r.get("image_url", ""),
                     "label": r.get("label", r["image_path"].split("/")[-1]),
+                    "name": _parse_label(r.get("label", ""))[0],
+                    "description": _parse_label(r.get("label", ""))[1],
+                    "price": _parse_label(r.get("label", ""))[2],
                     "similarity_score": r["score"],
                 }
                 for r in results
