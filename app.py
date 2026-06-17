@@ -320,6 +320,12 @@ async def search_image(file: UploadFile = File(...)):
             os.unlink(image_path)
 
 
+class ChatRequest(BaseModel):
+    message: str = ""
+    query: str = ""
+    history: list = []
+
+
 @app.post("/api/chat")
 async def chat(req: ChatRequest):
     """RAG 对话导购：自然语言购物咨询 → 商品检索 + LLM 推荐"""
@@ -467,12 +473,6 @@ async def recommend(file: UploadFile = File(...)):
 # ═══════════════════════════════════════════════════════════════
 # 反馈端点
 # ═══════════════════════════════════════════════════════════════
-
-class ChatRequest(BaseModel):
-    message: str = ""
-    query: str = ""
-    history: list = []
-
 
 class FeedbackRequest(BaseModel):
     feedback: str
