@@ -18,17 +18,25 @@ class SearchEngine:
 
     # ── 加载 ──────────────────────────────────────────────
 
-    def load(self, npz_path: str, image_base_dir: str = "") -> "SearchEngine":
+    def load(self, npz_path: str, image_base_dir: str = "", meta_path: str = "") -> "SearchEngine":
         """从 .npz 文件加载预提取的特征库。
 
         Args:
             npz_path:       extract_features.py 输出的 .npz 文件路径
             image_base_dir: 图片根目录（用于转换为相对路径 / URL 拼接）
+            meta_path:      商品元数据 JSON 文件路径（可选）
         """
         data = np.load(npz_path, allow_pickle=False)
         self._features = data["features"].astype(np.float32)
         self._paths = data["paths"]
         self._image_base_dir = image_base_dir
+
+        # 加载商品描述元数据
+        self._meta = {}
+        if meta_path and Path(meta_path).exists():
+            import json
+            with open(meta_path, "r", encoding="utf-8") as f:
+                self._meta = json.load(f)
 
         # L2 归一化，使余弦相似度 = 内积
         norms = np.linalg.norm(self._features, axis=1, keepdims=True)
@@ -102,20 +110,26 @@ class SearchEngine:
 
     # ── 辅助 ──────────────────────────────────────────────
 
-    @staticmethod
-    def _make_label(image_path: str) -> str:
-        """从路径生成可读的商品名称，如 '服装 · 第3款'"""
-        path = Path(image_path)
-        parts = path.parts  # e.g. ('服装', '01.jpg')
+    def _make_label(self, image_path: str) -> str:
+        """从元数据 JSON 获取商品描述，如无则从路径生成"""
+        # 先查元数据
+        if image_path in self._meta:
+            return self._meta[image_path]
+        # 用文件名（不含扩展名）尝试匹配
+        name = Path(image_path).name
+        for key, desc in self._meta.items():
+            if key.endswith(name) or Path(key).name == name:
+                return desc
+        # 兜底：从路径生成
+        parts = Path(image_path).parts
         if len(parts) >= 2:
-            category = parts[-2]
-            stem = path.stem  # e.g. '01'
+            stem = Path(image_path).stem
             try:
                 num = int(stem)
-                return f"{category} · 第{num}款"
+                return f"{parts[-2]} · 第{num}款"
             except ValueError:
-                return f"{category} · {stem}"
-        return path.stem
+                return f"{parts[-2]} · {stem}"
+        return Path(image_path).stem
 
     def _resolve_path(self, raw_path: str) -> str:
         """将本地绝对路径转换为可访问的相对路径或 URL。"""

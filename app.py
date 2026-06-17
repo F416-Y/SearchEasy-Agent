@@ -62,7 +62,7 @@ def startup():
     # 加载特征库
     npz_path = Path(FEATURES_NPZ)
     if npz_path.exists():
-        search_engine.load(str(npz_path), image_base_dir=IMAGE_DIR)
+        search_engine.load(str(npz_path), image_base_dir=IMAGE_DIR, meta_path="product_meta.json")
         print(f"[SearchEasy] 特征库已加载: {search_engine.size} 张图片, "
               f"维度={search_engine.stats()['feature_dim']}")
     else:
