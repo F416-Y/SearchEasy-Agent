@@ -311,6 +311,7 @@ async def recommend(file: UploadFile = File(...)):
                 {
                     "image_path": r["image_path"],
                     "image_url": r.get("image_url", ""),
+                    "label": r.get("label", r["image_path"].split("/")[-1]),
                     "similarity_score": r["score"],
                 }
                 for r in results

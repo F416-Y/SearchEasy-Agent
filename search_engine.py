@@ -94,12 +94,28 @@ class SearchEngine:
             image_path = self._resolve_path(raw_path)
             results.append({
                 "image_path": image_path,
+                "label": self._make_label(image_path),
                 "score": round(score, 4),
             })
 
         return results
 
     # ── 辅助 ──────────────────────────────────────────────
+
+    @staticmethod
+    def _make_label(image_path: str) -> str:
+        """从路径生成可读的商品名称，如 '服装 · 第3款'"""
+        path = Path(image_path)
+        parts = path.parts  # e.g. ('服装', '01.jpg')
+        if len(parts) >= 2:
+            category = parts[-2]
+            stem = path.stem  # e.g. '01'
+            try:
+                num = int(stem)
+                return f"{category} · 第{num}款"
+            except ValueError:
+                return f"{category} · {stem}"
+        return path.stem
 
     def _resolve_path(self, raw_path: str) -> str:
         """将本地绝对路径转换为可访问的相对路径或 URL。"""

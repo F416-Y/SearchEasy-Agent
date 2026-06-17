@@ -285,8 +285,8 @@
         <div class="product-grid">
           ${data.results.map(r => `
             <div class="product-card">
-              <img src="${r.image_url.startsWith('http') ? r.image_url : API_BASE + (r.image_url.startsWith('/') ? '' : '/') + r.image_url}" alt="${r.image_path}" onerror="this.src='https://placehold.co/300/f1f5f9/8ba0bc?text=商品'">
-              <div class="name">${r.image_path.split('/').pop()}</div>
+              <img src="${r.image_url.startsWith('http') ? r.image_url : API_BASE + (r.image_url.startsWith('/') ? '' : '/') + r.image_url}" alt="${r.label}" onerror="this.src='https://placehold.co/300/f1f5f9/8ba0bc?text=商品'">
+              <div class="name">${r.label || r.image_path.split('/').pop()}</div>
               <div class="score-bar"><div class="score-fill" style="width:${(r.score*100).toFixed(0)}%"></div></div>
               <div style="font-size:.75rem;color:var(--sub);margin-top:2px">${(r.score*100).toFixed(1)}%</div>
             </div>
