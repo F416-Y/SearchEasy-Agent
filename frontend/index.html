@@ -202,7 +202,7 @@ function aiMsg(reply,products){
   if(products&&products.length){
     cards='<div class="pcards">';
     products.forEach(p=>{
-      const img=p.image_url||'https://placehold.co/400/EFF2FA/6B7280?text=商品';
+      const raw=p.image_url||''; const img=raw.startsWith('http')?raw:raw.startsWith('/')?API+raw:'https://placehold.co/400/EFF2FA/6B7280?text='+encodeURIComponent(p.name||'商品');
       cards+=`<div class="pcard">
         <img src="${esc(img)}" alt="${esc(p.name)}" loading="lazy" onerror="this.src='https://placehold.co/400/EFF2FA/6B7280?text=商品'">
         <div class="pcard-body">
@@ -249,7 +249,7 @@ async function upload(inp){
       const ps=(d.products||[]).map(p=>({
         name:p.label||p.image_path.split('/').pop(),
         description:'相似度 '+(p.similarity_score*100).toFixed(1)+'%',
-        image_url:p.image_url||'',score:p.similarity_score
+        image_url:p.image_url||'',score:p.similarity_score,price:p.price||0
       }));
       aiMsg(d.recommendation_note,ps);$('st').textContent='图像搜索 · '+Math.round(performance.now()-t0)+'ms';
     }else{aiMsg('图片搜索失败',[])}
