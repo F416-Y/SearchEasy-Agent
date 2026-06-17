@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SearchEasy — AI 导购</title>
+<style>
+  :root {
+    --bg: #f0f4f8;
+    --card: #ffffff;
+    --primary: #3b5998;
+    --accent: #5b7ec2;
+    --text: #2d3748;
+    --sub: #718096;
+    --border: #e2e8f0;
+    --shadow: 0 4px 24px rgba(0,0,0,.06);
+    --radius: 16px;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    background: linear-gradient(135deg, #e8edf5 0%, #f0f4f8 30%, #faf5f0 70%, #f5effa 100%);
+    min-height: 100vh; color: var(--text);
+  }
+
+  /* ── Header ── */
+  header {
+    background: linear-gradient(135deg, #2d3a6e 0%, #3b5998 40%, #4a6db5 100%);
+    color: #fff; padding: 1rem 2rem;
+    display: flex; align-items: center; justify-content: space-between;
+    box-shadow: 0 2px 16px rgba(59,89,152,.2);
+  }
+  header h1 { font-size: 1.5rem; font-weight: 700; letter-spacing: .02em; }
+  .badge {
+    background: rgba(255,255,255,.18); padding: .3rem .8rem; border-radius: 20px;
+    font-size: .78rem; backdrop-filter: blur(4px);
+  }
+
+  /* ── Layout ── */
+  .container { max-width: 960px; margin: 0 auto; padding: 1.5rem; }
+  .card {
+    background: var(--card); border-radius: var(--radius);
+    padding: 1.5rem; margin-bottom: 1.5rem;
+    box-shadow: var(--shadow); border: 1px solid var(--border);
+  }
+
+  /* ── Upload ── */
+  .upload-zone {
+    border: 2.5px dashed var(--primary);
+    border-radius: var(--radius); padding: 2.5rem 1.5rem;
+    text-align: center; cursor: pointer; transition: all .25s;
+    background: linear-gradient(180deg, #f7f9fc 0%, #fff 100%);
+  }
+  .upload-zone:hover, .upload-zone.drag-over {
+    border-color: var(--accent); background: #eef2fa; transform: translateY(-1px);
+    box-shadow: 0 8px 24px rgba(59,89,152,.1);
+  }
+  .upload-icon { font-size: 3rem; margin-bottom: .5rem; }
+  .upload-hint { color: var(--sub); font-size: .85rem; margin-top: .4rem; }
+  #preview-img { max-width: 200px; max-height: 200px; border-radius: 12px; margin-top: 1rem; display: none; }
+  .btn-row { display: flex; gap: .75rem; justify-content: center; margin-top: 1rem; flex-wrap: wrap; }
+
+  /* ── Buttons ── */
+  .btn {
+    display: inline-flex; align-items: center; gap: .4rem;
+    padding: .7rem 1.6rem; border-radius: 28px; font-size: .92rem;
+    font-weight: 600; border: none; cursor: pointer; transition: all .2s;
+  }
+  .btn-primary { background: linear-gradient(135deg, #3b5998, #4a6db5); color: #fff; }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(59,89,152,.3); }
+  .btn-outline { background: #fff; color: var(--primary); border: 1.5px solid var(--primary); }
+  .btn-outline:hover { background: #f0f4fa; }
+  .btn:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+
+  /* ── Results ── */
+  .result-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+  .result-header h2 { font-size: 1.2rem; }
+  .product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px,1fr)); gap: 1rem; }
+  .product-card {
+    background: #fafcfd; border-radius: 14px; padding: .6rem;
+    text-align: center; border: 1px solid var(--border);
+    transition: transform .15s, box-shadow .15s;
+  }
+  .product-card:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,.08); }
+  .product-card img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 10px; background: #f1f5f9; }
+  .product-card .name { font-size: .78rem; color: var(--sub); margin-top: .4rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .score-bar {
+    height: 6px; background: #e2e8f0; border-radius: 3px; margin: .4rem .4rem 0; overflow: hidden;
+  }
+  .score-fill { height: 100%; border-radius: 3px; background: linear-gradient(90deg, #5b9bd5, #3b5998); }
+
+  /* ── Recommendation ── */
+  .rec-bubble {
+    background: linear-gradient(135deg, #f0f4fa, #faf5f0);
+    border-radius: 20px; padding: 1.2rem 1.5rem; margin-top: 1rem;
+    border-left: 4px solid var(--primary);
+    line-height: 1.7; font-size: .95rem;
+  }
+  .rec-bubble::before { content: '🤖 AI 推荐'; display: block; font-weight: 700; margin-bottom: .5rem; color: var(--primary); }
+
+  /* ── States ── */
+  .loading { text-align: center; padding: 2rem; color: var(--sub); }
+  .spinner {
+    display: inline-block; width: 36px; height: 36px;
+    border: 3px solid #e2e8f0; border-top-color: var(--primary);
+    border-radius: 50%; animation: spin .8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .error { background: #fff5f5; color: #c53030; padding: 1rem; border-radius: 12px; border: 1px solid #fed7d7; }
+  .empty { text-align: center; color: var(--sub); padding: 2rem; font-size: .9rem; }
+
+  /* ── Tabs ── */
+  .tabs { display: flex; gap: .25rem; margin-bottom: 1rem; background: #f1f5f9; border-radius: 12px; padding: 3px; }
+  .tab {
+    flex: 1; text-align: center; padding: .5rem 1rem; border-radius: 10px;
+    cursor: pointer; font-weight: 600; font-size: .85rem; transition: all .2s; color: var(--sub);
+  }
+  .tab.active { background: #fff; color: var(--primary); box-shadow: 0 1px 4px rgba(0,0,0,.06); }
+
+  @media (max-width: 600px) {
+    .product-grid { grid-template-columns: repeat(2,1fr); }
+    header { padding: .8rem 1rem; }
+    header h1 { font-size: 1.2rem; }
+  }
+
+  /* Footer */
+  footer { text-align: center; padding: 1.5rem; color: var(--sub); font-size: .78rem; }
+  footer a { color: var(--primary); text-decoration: none; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🛒 SearchEasy</h1>
+  <span class="badge" id="status-badge">🔗 连接中...</span>
+</header>
+
+<div class="container">
+
+  <!-- ── Upload Card ── -->
+  <div class="card">
+    <div class="upload-zone" id="upload-zone">
+      <div class="upload-icon">📸</div>
+      <div><strong>点击上传</strong> 或拖拽图片到此处</div>
+      <div class="upload-hint">支持 JPG / PNG / WebP</div>
+      <input type="file" id="file-input" accept="image/*" hidden>
+      <img id="preview-img" alt="预览">
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="btn-search" disabled>🔍 搜索相似商品</button>
+      <button class="btn btn-outline" id="btn-recommend" disabled>✨ AI 智能推荐</button>
+    </div>
+  </div>
+
+  <!-- ── Results ── -->
+  <div class="card" id="results-card" style="display:none">
+    <div class="tabs">
+      <div class="tab active" data-tab="products">📦 商品结果</div>
+      <div class="tab" data-tab="recommendation">💬 AI 推荐语</div>
+    </div>
+    <div id="tab-products"></div>
+    <div id="tab-recommendation" style="display:none"></div>
+  </div>
+
+</div>
+
+<footer>
+  SearchEasy v2.0 · AI 全栈挑战赛作品 ·
+  <a href="https://github.com/F416-Y/SearchEasy-Agent" target="_blank">GitHub</a> ·
+  <a href="https://yunyunwaifu-flora-ai-shop-agent.hf.space/docs" target="_blank">API Docs</a>
+</footer>
+
+<script>
+  // ═══════════════ Config ═══════════════
+  const API_BASE = 'https://yunyunwaifu-flora-ai-shop-agent.hf.space';
+  let selectedFile = null;
+
+  // ═══════════════ Elements ═══════════════
+  const $ = id => document.getElementById(id);
+  const uploadZone = $('upload-zone');
+  const fileInput = $('file-input');
+  const previewImg = $('preview-img');
+  const btnSearch = $('btn-search');
+  const btnRecommend = $('btn-recommend');
+  const resultsCard = $('results-card');
+  const statusBadge = $('status-badge');
+
+  // ═══════════════ Health Check ═══════════════
+  async function checkHealth() {
+    try {
+      const r = await fetch(`${API_BASE}/api/health`);
+      const d = await r.json();
+      if (d.status === 'ok') {
+        statusBadge.textContent = `🟢 ${d.engine.total_images} 件商品在线`;
+        statusBadge.style.background = 'rgba(72,187,120,.25)';
+      } else {
+        statusBadge.textContent = '🟡 服务异常';
+      }
+    } catch {
+      statusBadge.textContent = '🔴 离线';
+      statusBadge.style.background = 'rgba(245,101,101,.25)';
+    }
+  }
+  checkHealth();
+
+  // ═══════════════ Upload ═══════════════
+  uploadZone.addEventListener('click', () => fileInput.click());
+  uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
+  uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
+  uploadZone.addEventListener('drop', e => {
+    e.preventDefault();
+    uploadZone.classList.remove('drag-over');
+    const f = e.dataTransfer.files[0];
+    if (f) handleFile(f);
+  });
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files[0]) handleFile(fileInput.files[0]);
+  });
+
+  function handleFile(file) {
+    if (!file.type.startsWith('image/')) { alert('请上传图片文件'); return; }
+    selectedFile = file;
+    const reader = new FileReader();
+    reader.onload = e => { previewImg.src = e.target.result; previewImg.style.display = 'block'; };
+    reader.readAsDataURL(file);
+    btnSearch.disabled = false;
+    btnRecommend.disabled = false;
+  }
+
+  // ═══════════════ API Calls ═══════════════
+  async function callAPI(endpoint) {
+    if (!selectedFile) return;
+    const form = new FormData();
+    form.append('file', selectedFile);
+
+    showLoading();
+    try {
+      const r = await fetch(`${API_BASE}${endpoint}`, { method: 'POST', body: form });
+      if (!r.ok) {
+        const err = await r.json().catch(() => ({}));
+        throw new Error(err.detail || `HTTP ${r.status}`);
+      }
+      return await r.json();
+    } catch (e) {
+      showError(e.message);
+      return null;
+    }
+  }
+
+  btnSearch.addEventListener('click', async () => {
+    const data = await callAPI('/api/search');
+    if (data) renderProducts(data);
+  });
+
+  btnRecommend.addEventListener('click', async () => {
+    const data = await callAPI('/api/agent/recommend');
+    if (data) renderFull(data);
+  });
+
+  // ═══════════════ Render ═══════════════
+  function showLoading() {
+    resultsCard.style.display = 'block';
+    $('tab-products').innerHTML = '<div class="loading"><div class="spinner"></div><p>正在分析...</p></div>';
+    $('tab-recommendation').innerHTML = '';
+    $('tab-recommendation').style.display = 'none';
+    document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', i===0));
+  }
+
+  function showError(msg) {
+    resultsCard.style.display = 'block';
+    $('tab-products').innerHTML = `<div class="error">❌ ${msg}</div>`;
+  }
+
+  function renderProducts(data) {
+    resultsCard.style.display = 'block';
+    $('tab-recommendation').style.display = 'none';
+    document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', i===0));
+
+    const html = `
+      <div class="result-header">
+        <h2>📦 相似商品 (${data.results_count} / ${data.total_indexed})</h2>
+        <span style="color:var(--sub);font-size:.85rem">查询: ${data.query}</span>
+      </div>
+      ${data.results.length === 0 ? '<div class="empty">未找到相似商品，试试其他图片</div>' : `
+        <div class="product-grid">
+          ${data.results.map(r => `
+            <div class="product-card">
+              <img src="${r.image_url}" alt="${r.image_path}" onerror="this.src='https://placehold.co/300/f1f5f9/8ba0bc?text=商品'">
+              <div class="name">${r.image_path.split('/').pop()}</div>
+              <div class="score-bar"><div class="score-fill" style="width:${(r.score*100).toFixed(0)}%"></div></div>
+              <div style="font-size:.75rem;color:var(--sub);margin-top:2px">${(r.score*100).toFixed(1)}%</div>
+            </div>
+          `).join('')}
+        </div>
+      `}
+    `;
+    $('tab-products').innerHTML = html;
+  }
+
+  function renderFull(data) {
+    renderProducts({ query: '推荐查询', total_indexed: data.products.length, results_count: data.products.length, results: data.products });
+    $('tab-recommendation').innerHTML = data.recommendation_note
+      ? `<div class="rec-bubble">${data.recommendation_note}</div>`
+      : '<div class="empty">LLM 未返回推荐语</div>';
+  }
+
+  // ═══════════════ Tabs ═══════════════
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      $('tab-products').style.display = tab.dataset.tab === 'products' ? '' : 'none';
+      $('tab-recommendation').style.display = tab.dataset.tab === 'recommendation' ? '' : 'none';
+    });
+  });
+</script>
+
+</body>
+</html>
