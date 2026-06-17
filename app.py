@@ -321,13 +321,13 @@ async def search_image(file: UploadFile = File(...)):
 
 
 @app.post("/api/chat")
-async def chat(req: dict):
+async def chat(req: ChatRequest):
     """RAG 对话导购：自然语言购物咨询 → 商品检索 + LLM 推荐"""
-    message = (req.get("message") or req.get("query") or "").strip()
+    message = (req.message or req.query or "").strip()
     if not message:
         raise HTTPException(status_code=400, detail="请输入购物需求")
 
-    history = req.get("history", [])
+    history = req.history or []
     t0 = __import__("time").time()
 
     # 1. 文本检索匹配商品
@@ -467,6 +467,12 @@ async def recommend(file: UploadFile = File(...)):
 # ═══════════════════════════════════════════════════════════════
 # 反馈端点
 # ═══════════════════════════════════════════════════════════════
+
+class ChatRequest(BaseModel):
+    message: str = ""
+    query: str = ""
+    history: list = []
+
 
 class FeedbackRequest(BaseModel):
     feedback: str
