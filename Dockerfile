@@ -20,9 +20,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # 代码 + 数据
 COPY . .
 
-# 特征库和图片目录
-COPY features.npz .
-COPY product_images/ ./product_images/
+# 特征库和图片目录 (图片通过 HF Web UI 上传)
+RUN mkdir -p product_images
 
 # 强制绕过 HF 代理
 ENV HF_HUB_DISABLE_PROGRESS_BARS=1
