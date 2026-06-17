@@ -111,24 +111,17 @@ class SearchEngine:
     # ── 辅助 ──────────────────────────────────────────────
 
     def _make_label(self, image_path: str) -> str:
-        """从元数据 JSON 获取商品描述，如无则从路径生成"""
-        # 先查元数据
-        if image_path in self._meta:
-            return self._meta[image_path]
-        # 用文件名（不含扩展名）尝试匹配
-        name = Path(image_path).name
-        for key, desc in self._meta.items():
-            if key.endswith(name) or Path(key).name == name:
-                return desc
-        # 兜底：从路径生成
-        parts = Path(image_path).parts
-        if len(parts) >= 2:
-            stem = Path(image_path).stem
-            try:
-                num = int(stem)
-                return f"{parts[-2]} · 第{num}款"
-            except ValueError:
-                return f"{parts[-2]} · {stem}"
+        """从元数据获取商品信息，合并为描述字符串。兼容新旧格式"""
+        meta = self._meta.get(image_path, {})
+        if not meta:
+            name = Path(image_path).name
+            for key, val in self._meta.items():
+                if key.endswith(name) or Path(key).name == name:
+                    meta = val; break
+        if isinstance(meta, dict):
+            return f"{meta.get('name','')} · {meta.get('desc','')} · ¥{meta.get('price','暂无')}"
+        if isinstance(meta, str):
+            return meta  # 旧格式兼容
         return Path(image_path).stem
 
     def _resolve_path(self, raw_path: str) -> str:

@@ -208,7 +208,10 @@ function aiMsg(reply,products){
         <div class="pcard-body">
           <div class="pcard-name">${esc(p.name)}</div>
           <div class="pcard-desc">${esc(p.description)}</div>
-          ${p.score?`<div class="pcard-tag">匹配 ${(p.score*100).toFixed(0)}%</div>`:''}
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span style="font-size:.95rem;font-weight:700;color:#e8590c">¥${p.price||'暂无'}</span>
+            ${p.score?`<div class="pcard-tag">${(p.score*100).toFixed(0)}%</div>`:''}
+          </div>
         </div>
       </div>`;
     });

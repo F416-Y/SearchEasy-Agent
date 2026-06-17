@@ -223,25 +223,36 @@ def _ensure_meta_loaded():
 
 
 def text_search(query: str, top_k: int = 5) -> list[dict]:
-    """关键词匹配检索商品"""
+    """关键词匹配检索商品，兼容新旧 metadata 格式"""
     _ensure_meta_loaded()
     if not _product_meta:
         return []
 
     keywords = set(query.lower())
     scored = []
-    for path, desc in _product_meta.items():
-        desc_lower = desc.lower()
-        score = sum(1 for kw in keywords if kw in desc_lower)
+    for path, meta in _product_meta.items():
+        if isinstance(meta, dict):
+            text = meta.get("name", "") + " " + meta.get("desc", "")
+        else:
+            text = str(meta)
+        text_lower = text.lower()
+        score = sum(1 for kw in keywords if kw in text_lower)
         if score > 0:
-            scored.append((path, desc, score))
+            scored.append((path, meta, score))
 
     scored.sort(key=lambda x: -x[2])
     results = []
-    for path, desc, score in scored[:top_k]:
+    for path, meta, score in scored[:top_k]:
+        if isinstance(meta, dict):
+            label = f"{meta['name']} · {meta['desc']}"
+        else:
+            label = str(meta)
         results.append({
             "image_path": path,
-            "label": desc,
+            "label": label,
+            "name": meta.get("name", "") if isinstance(meta, dict) else "",
+            "description": meta.get("desc", "") if isinstance(meta, dict) else "",
+            "price": meta.get("price", 0) if isinstance(meta, dict) else 0,
             "score": round(min(score / max(len(keywords), 1), 1.0), 4),
         })
     return results
@@ -344,9 +355,9 @@ async def chat(req: dict):
         "reply": reply,
         "products": [
             {
-                "name": p["label"].split("·")[0].strip() if "·" in p["label"] else p["label"],
-                "description": p["label"].split("·", 1)[-1].strip() if "·" in p["label"] else "",
-                "price": "暂无",
+                "name": p.get("name") or p["label"].split("·")[0].strip(),
+                "description": p.get("description") or p["label"].split("·", 1)[-1].strip().split("· ¥")[0],
+                "price": p.get("price", 0),
                 "image_url": p.get("image_url", ""),
                 "score": p["score"],
             }
