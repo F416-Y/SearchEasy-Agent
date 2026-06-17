@@ -112,6 +112,8 @@ class SearchEngine:
 
     def _make_label(self, image_path: str) -> str:
         """从元数据获取商品信息，合并为描述字符串。兼容新旧格式"""
+        # 统一路径分隔符为 /
+        image_path = image_path.replace('\\', '/')
         meta = self._meta.get(image_path, {})
         if not meta:
             name = Path(image_path).name
@@ -125,17 +127,17 @@ class SearchEngine:
         return Path(image_path).stem
 
     def _resolve_path(self, raw_path: str) -> str:
-        """将本地绝对路径转换为可访问的相对路径或 URL。"""
+        """将本地绝对路径转换为可访问的相对路径 (统一 / 分隔符)。"""
+        raw_path = raw_path.replace('\\', '/')
         path = Path(raw_path)
         if self._image_base_dir:
-            base = Path(self._image_base_dir)
+            base = Path(self._image_base_dir.replace('\\', '/'))
             try:
                 rel = path.relative_to(base)
                 return str(rel).replace("\\", "/")
             except ValueError:
                 pass
-        # 如果无法转换为相对路径，返回文件名
-        return path.name
+        return raw_path.split('/')[-1] if '/' in raw_path else path.name
 
     def get_image_url(self, image_path: str, base_url: str = "") -> str:
         """拼接完整的图片访问 URL。"""
